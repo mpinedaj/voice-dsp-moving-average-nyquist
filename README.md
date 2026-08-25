@@ -5,7 +5,7 @@
 
 ---
 
-## 📌 Project Overview
+##  Project Overview
 This repository contains the Python implementation for **Lab 1** of the Digital Signal and Image Processing course. The project focuses on processing real-time or pre-recorded audio signals through two main tasks:
 
 1. **Part 1 — Audio Acquisition & Noise Reduction:** Capturing a voice signal contaminated with background noise and passing it through a **Moving Average (Comb) Filter** to minimize white noise.
@@ -13,7 +13,7 @@ This repository contains the Python implementation for **Lab 1** of the Digital 
 
 ---
 
-## 📐 Mathematical Model
+##  Mathematical Model
 
 ### Moving Average Filter
 For an input signal $x(n)$ consisting of $N$ discrete points, the filter computes the unweighted average over $M$ consecutive samples ($M < N$):
@@ -29,7 +29,7 @@ where $f_{\max}$ is the maximum frequency component present in the input voice s
 
 ---
 
-## 🛠️ Requirements & Installation
+##  Requirements & Installation
 
 Clone the repository and install the required dependencies:
 
