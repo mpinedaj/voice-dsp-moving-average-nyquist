@@ -1,0 +1,18 @@
+# Caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales (si decides crear uno más adelante)
+venv/
+env/
+.env
+.venv/
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Herramientas de desarrollo
+.vscode/
+.idea/
