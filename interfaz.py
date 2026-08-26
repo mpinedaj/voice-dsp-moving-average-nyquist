@@ -54,11 +54,11 @@ class InterfazLaboratorio:
             self.btn_grabar.config(text="1. Grabar Voz (3s)", bg="lightcoral")
 
     def mostrar_grafica(self):
-        t = np.linspace(0, 3.0, len(self.datos['x_ruidosa']))
+        t = np.linspace(0, 3.0, len(self.datos['x_entrada']))
         muestras_ver = 1000 
         
         plt.figure(figsize=(10, 4))
-        plt.plot(t[:muestras_ver], self.datos['x_ruidosa'][:muestras_ver], label='Entrada ruidosa $x(n)$', alpha=0.5, color='gray')
+        plt.plot(t[:muestras_ver], self.datos['x_entrada'][:muestras_ver], label='Entrada ruidosa $x(n)$', alpha=0.5, color='gray')
         plt.plot(t[:muestras_ver], self.datos['y_filtrada'][:muestras_ver], label='Salida filtrada $y(n)$', color='blue', linewidth=1.2)
         plt.title('Filtrado por Media Móvil: $y(n) = \\sum_{k=0}^{M-1} \\frac{1}{M} x(n-k)$')
         plt.xlabel('Tiempo $t = nT$ [s]')
@@ -69,7 +69,7 @@ class InterfazLaboratorio:
         plt.show()
 
     def play_ruido(self):
-        sd.play(self.datos['x_ruidosa'], self.datos['fs_original'])
+        sd.play(self.datos['x_entrada'], self.datos['fs_original'])
 
     def play_filtro(self):
         sd.play(self.datos['y_filtrada'], self.datos['fs_original'])
