@@ -3,14 +3,13 @@ from tkinter import messagebox
 import sounddevice as sd
 import matplotlib.pyplot as plt
 import numpy as np
-import threading
-import time
 
 from filtro_core import (
     grabar_audio,
     aplicar_filtro_media_movil,
     verificar_criterio_nyquist,
 )
+
 
 class InterfazLaboratorio:
     def __init__(self, root):
@@ -31,10 +30,6 @@ class InterfazLaboratorio:
         self.btn_grabar = tk.Button(root, text="1. Grabar Voz (3s)", command=self.ejecutar_grabacion,
                                      bg="lightcoral", width=32)
         self.btn_grabar.pack(pady=5)
-
-        # Etiqueta de progreso de grabación
-        self.label_progreso = tk.Label(root, text="", font=("Arial", 9))
-        self.label_progreso.pack()
 
         # --- Paso 2: Valor de M interactivo ---
         frame_m = tk.Frame(root)
@@ -81,70 +76,32 @@ class InterfazLaboratorio:
         self.btn_play_nyquist.pack(pady=5)
 
     # ------------------------------------------------------------------
-    # Utilidad: resetear estado de los botones que dependen del filtro
-    # ------------------------------------------------------------------
-    def _resetear_dependientes_del_filtro(self):
-        """Deshabilita todo lo que depende de una grabación o un filtrado
-        que acaba de quedar obsoleto (nueva grabación o nuevo M)."""
-        self.btn_grafica.config(state=tk.DISABLED)
-        self.btn_filtro.config(state=tk.DISABLED)
-        self.btn_nyquist.config(state=tk.DISABLED)
-        self.btn_play_nyquist.config(state=tk.DISABLED)
-        self.label_resultado.config(text="")
-
-    # ------------------------------------------------------------------
-    # Paso 1: Grabación (con progreso, sin congelar la ventana)
+    # Paso 1: Grabación
     # ------------------------------------------------------------------
     def ejecutar_grabacion(self):
-        duracion = 3.0
+        self.btn_grabar.config(text="Grabando...", bg="orange")
+        self.root.update()
 
-        self.btn_grabar.config(text="Grabando...", bg="orange", state=tk.DISABLED)
-        self.btn_filtrar.config(state=tk.DISABLED)
-        self.btn_ruido.config(state=tk.DISABLED)
-        self._resetear_dependientes_del_filtro()
-
-        self._resultado_grabacion = None
-        self._error_grabacion = None
-        self._inicio_grabacion = time.time()
-
-        hilo = threading.Thread(target=self._grabar_en_hilo, args=(duracion,), daemon=True)
-        hilo.start()
-
-        self._actualizar_progreso_grabacion(hilo, duracion)
-
-    def _grabar_en_hilo(self, duracion):
         try:
-            self._resultado_grabacion = grabar_audio(duracion=duracion, fs_original=self.fs_original)
+            self.x_entrada = grabar_audio(duracion=3.0, fs_original=self.fs_original)
+            self.y_filtrada = None
+            self.x_nyquist = None
+
+            self.btn_grabar.config(text="1. Volver a Grabar", bg="lightgreen")
+            self.btn_filtrar.config(state=tk.NORMAL)
+            self.btn_ruido.config(state=tk.NORMAL)
+
+            # Se deshabilitan pasos que dependen del filtrado hasta aplicarlo de nuevo
+            self.btn_grafica.config(state=tk.DISABLED)
+            self.btn_filtro.config(state=tk.DISABLED)
+            self.btn_nyquist.config(state=tk.DISABLED)
+            self.btn_play_nyquist.config(state=tk.DISABLED)
+            self.label_resultado.config(text="")
+
+            messagebox.showinfo("Éxito", "Grabación completada.\nAhora define M y aplica el filtro.")
         except Exception as e:
-            self._error_grabacion = e
-
-    def _actualizar_progreso_grabacion(self, hilo, duracion):
-        transcurrido = time.time() - self._inicio_grabacion
-
-        if hilo.is_alive():
-            segundos_mostrados = min(transcurrido, duracion)
-            self.label_progreso.config(text=f"Grabando... {segundos_mostrados:.1f}s / {duracion:.0f}s")
-            self.root.after(100, self._actualizar_progreso_grabacion, hilo, duracion)
-            return
-
-        # El hilo terminó: procesar resultado en el hilo principal
-        self.label_progreso.config(text="")
-
-        if self._error_grabacion is not None:
-            messagebox.showerror("Error", f"Falló la grabación: {str(self._error_grabacion)}")
-            self.btn_grabar.config(text="1. Grabar Voz (3s)", bg="lightcoral", state=tk.NORMAL)
-            return
-
-        self.x_entrada = self._resultado_grabacion
-        self.y_filtrada = None
-        self.x_nyquist = None
-
-        self.btn_grabar.config(text="1. Volver a Grabar", bg="lightgreen", state=tk.NORMAL)
-        self.btn_filtrar.config(state=tk.NORMAL)
-        self.btn_ruido.config(state=tk.NORMAL)
-        self._resetear_dependientes_del_filtro()
-
-        messagebox.showinfo("Éxito", "Grabación completada.\nAhora define M y aplica el filtro.")
+            messagebox.showerror("Error", f"Falló la grabación: {str(e)}")
+            self.btn_grabar.config(text="1. Grabar Voz (3s)", bg="lightcoral")
 
     # ------------------------------------------------------------------
     # Paso 2: Filtrado con M interactivo
@@ -163,11 +120,12 @@ class InterfazLaboratorio:
         try:
             self.y_filtrada = aplicar_filtro_media_movil(self.x_entrada, M_puntos)
             self.x_nyquist = None
-            self._resetear_dependientes_del_filtro()
+            self.label_resultado.config(text="")
 
             self.btn_grafica.config(state=tk.NORMAL)
             self.btn_filtro.config(state=tk.NORMAL)
             self.btn_nyquist.config(state=tk.NORMAL)
+            self.btn_play_nyquist.config(state=tk.DISABLED)
 
             messagebox.showinfo("Éxito", f"Filtro aplicado con M = {M_puntos}.")
         except ValueError as e:
@@ -178,19 +136,20 @@ class InterfazLaboratorio:
     # ------------------------------------------------------------------
     def mostrar_graficas(self):
         t = np.linspace(0, 3.0, len(self.x_entrada))
-        muestras_ver = 1000
 
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
 
-        ax1.plot(t[:muestras_ver], self.x_entrada[:muestras_ver], color='green')
+        ax1.plot(t, self.x_entrada, color='gray')
         ax1.set_title('Señal de entrada (con ruido) $x(n)$')
         ax1.set_ylabel('Amplitud')
+        ax1.set_xlim(0, 3.0)
         ax1.grid(True)
 
-        ax2.plot(t[:muestras_ver], self.y_filtrada[:muestras_ver], color='blue', linewidth=1.2)
+        ax2.plot(t, self.y_filtrada, color='blue', linewidth=1.2)
         ax2.set_title('Señal filtrada $y(n) = \\sum_{k=0}^{M-1} \\frac{1}{M} x(n-k)$')
         ax2.set_xlabel('Tiempo $t = nT$ [s]')
         ax2.set_ylabel('Amplitud')
+        ax2.set_xlim(0, 3.0)
         ax2.grid(True)
 
         plt.tight_layout()
@@ -200,14 +159,12 @@ class InterfazLaboratorio:
     # Paso 4: Reproducción antes/después
     # ------------------------------------------------------------------
     def play_ruido(self):
-        sd.stop()
         sd.play(self.x_entrada, self.fs_original)
 
     def play_filtro(self):
         if self.y_filtrada is None:
             messagebox.showwarning("Atención", "Primero aplica el filtro.")
             return
-        sd.stop()
         sd.play(self.y_filtrada, self.fs_original)
 
     # ------------------------------------------------------------------
@@ -243,7 +200,6 @@ class InterfazLaboratorio:
             messagebox.showerror("Error", str(e))
 
     def play_nyquist(self):
-        sd.stop()
         sd.play(self.x_nyquist, self.fs_nyquist_real)
 
 
