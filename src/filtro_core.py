@@ -1,16 +1,18 @@
 import numpy as np
 import sounddevice as sd
  
-# Ecuación: y(n) = sum_{k=0}^{M-1} (1/M) * x(n - k)
+#Algoritmo del filtro de media móvil (peine)
 def filtro_media_movil_matematico(x, M):
     N = len(x)
     y = np.zeros(N)
+    
+    #Asignamos los valores de la señal de salida como los valores de la señal de entrada desde 0 hasta M-1
+    for i in range(M):
+        y[i] = x[i]
  
-    for n in range(N):
-        suma_acumulada = 0.0
-        for k in range(M):
-            if n - k >= 0:
-                suma_acumulada += x[n - k]
+    #Algoritmo inicial
+    for n in range(M, N):
+        suma_acumulada = np.sum(x[n - M : n])
         y[n] = (1.0 / M) * suma_acumulada
  
     return y
